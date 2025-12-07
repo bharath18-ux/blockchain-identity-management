@@ -1,0 +1,21 @@
+{
+  "name": "blockchain-identity-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start:otp": "node otpServer.js",
+    "start:identity": "node server.js",
+    "seed": "node seed.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "fs": "^0.0.1-security",
+    "mongoose": "^8.20.1",
+    "nodemailer": "^6.10.1",
+    "pdf-lib": "^1.17.1",
+    "pdfkit": "^0.17.2",
+    "uuid": "^13.0.0"
+  }
+}

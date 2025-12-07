@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hash Verification Login</title>
+
+    <!-- FONT -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            margin: 0;
+            font-family: "Poppins", sans-serif;
+            background: #d1e6ed;
+        }
+
+        .header-wave {
+            background: white;
+            height: 250px;
+            clip-path: ellipse(80% 60% at 50% 0%);
+        }
+
+        .login-box {
+            width: 360px;
+            background: #e5e5e5;
+            margin: -120px auto 0;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 18px rgba(0,0,0,0.18);
+            text-align: left;
+        }
+
+        h2 {
+            text-align: center;
+            font-size: 26px;
+            color: #f05432;
+            margin-top: 20px;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-top: 5px;
+            margin-bottom: 20px;
+            border-radius: 25px;
+            border: 1px solid #ccc;
+            background: white;
+            font-size: 14px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #f05432;
+            box-shadow: 0 0 0 3px rgba(240,84,50,0.2);
+        }
+
+        .remember {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            background: #f05432;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: 0.25s;
+        }
+
+        .login-btn:hover {
+            background: #d94626;
+        }
+
+        .error {
+            text-align: center;
+            color: red;
+            font-size: 14px;
+            margin-bottom: 10px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="header-wave"></div>
+
+
+<div class="login-box">
+
+    <!-- ADDED HEADING INSIDE BOX -->
+    <h2 style="text-align:center; margin-top:0; margin-bottom:20px; color:#333; font-weight:600;">
+        Hash Verification
+    </h2>
+
+    <p id="error-msg" class="error">Invalid username or password</p>
+
+    <label>Username *</label>
+    <input id="username" placeholder="Enter your Username">
+
+    <label>Password *</label>
+    <input type="password" id="password" placeholder="Enter your Password">
+
+    <div class="remember">
+        <input type="checkbox" id="remember">
+        <span style="margin-left: 6px;">Remember me</span>
+    </div>
+
+    <button class="login-btn" onclick="login()">LOGIN</button>
+</div>
+
+<script>
+async function login() {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+    const error = document.getElementById("error-msg");
+
+    const res = await fetch("http://localhost:7300/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+        error.style.display = "none";
+        window.location.href = "hashverify.html";  
+    } else {
+        error.style.display = "block";
+        error.innerText = data.message;
+    }
+}
+</script>
+
+</body>
+</html>

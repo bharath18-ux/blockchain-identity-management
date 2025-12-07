@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Sign In</title>
+
+  <!-- Raleway Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      background: linear-gradient(120deg, #ff5f9e, #b66cff);
+      margin: 0;
+      font-family: "Raleway", sans-serif;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .box {
+      width: 480px;
+      padding: 45px 40px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 10px 45px rgba(0,0,0,0.18);
+      color: #fff;
+    }
+
+    h2 {
+      text-align: center;
+      color: #fff;
+      font-size: 32px;
+      font-weight: 600;
+      margin-bottom: 25px;
+      border-bottom: 2px solid rgba(255,255,255,0.4);
+      display: inline-block;
+      width: 100%;
+      padding-bottom: 8px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      color: #fff;
+      margin: 10px 0 6px;
+      font-size: 15px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px 18px;
+      border-radius: 35px;
+      border: none;
+      font-size: 15px;
+      background: rgba(0,0,0,0.28);
+      color: #fff;
+      outline: none;
+      font-family: "Raleway", sans-serif;
+      letter-spacing: 0.4px;
+      margin-bottom: 15px;
+      transition: 0.25s;
+    }
+
+    input::placeholder {
+      color: #eee;
+      font-family: "Raleway", sans-serif;
+    }
+
+    input:focus {
+      background: rgba(0,0,0,0.35);
+      box-shadow: 0 0 10px rgba(255,255,255,0.35);
+    }
+
+    button {
+      width: 100%;
+      padding: 15px;
+      border-radius: 35px;
+      border: none;
+      background: #ffffff;
+      color: #333;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 5px;
+      transition: 0.25s;
+    }
+
+    button:hover {
+      background: #f1f1f1;
+      transform: translateY(-1px);
+    }
+
+    #otpSection {
+      display: none;
+      margin-top: 10px;
+    }
+
+    #status {
+      margin-top: 15px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 15px;
+      color: #fff;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="box">
+    <h2>Sign In</h2>
+
+    <label>Email</label>
+    <input id="email" type="email" placeholder="Enter your email" />
+
+    <label>DID</label>
+    <input id="did" type="text" placeholder="Enter DID" />
+
+    <label>Credential ID</label>
+    <input id="cid" type="text" placeholder="Enter Credential ID" />
+
+    <button onclick="sendOtp()">Send OTP</button>
+
+    <div id="otpSection">
+      <label>Enter OTP</label>
+      <input id="otpInput" type="text" placeholder="6-digit OTP" />
+      <button onclick="verifyOtp()">Verify OTP</button>
+    </div>
+
+    <div id="status"></div>
+  </div>
+
+<script>
+  const OTP_BASE = "http://127.0.0.1:5001";
+
+  function showStatus(msg, color="white") {
+    const s = document.getElementById("status");
+    s.innerText = msg;
+    s.style.color = color;
+  }
+
+  async function sendOtp() {
+    const email = document.getElementById("email").value.trim();
+    const did = document.getElementById("did").value.trim();
+    const cid = document.getElementById("cid").value.trim();
+    if (!email || !did || !cid) return showStatus("❌ All fields required", "red");
+
+    try {
+      const res = await fetch(`${OTP_BASE}/send-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, did, cid })
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById("otpSection").style.display = "block";
+        showStatus("📩 OTP sent to your email", "#00ffb3");
+      } else {
+        showStatus("❌ Failed to send OTP", "red");
+      }
+    } catch (err) {
+      showStatus("❌ Network error — is OTP backend running?", "red");
+      console.error(err);
+    }
+  }
+
+  async function verifyOtp() {
+    const email = document.getElementById("email").value.trim();
+    const otp = document.getElementById("otpInput").value.trim();
+    if (!otp) return showStatus("❌ Enter OTP", "red");
+
+    try {
+      const res = await fetch(`${OTP_BASE}/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showStatus("✅ Verified! Redirecting...", "#00ffb3");
+        setTimeout(()=> window.location.href = "/chooseIdentity.html", 700);
+      } else {
+        showStatus("❌ Invalid or expired OTP", "red");
+      }
+    } catch (err) {
+      showStatus("❌ Network error", "red");
+      console.error(err);
+    }
+  }
+</script>
+</body>
+</html>

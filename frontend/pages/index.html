@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Credential Generator</title>
+
+  <!-- Raleway Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: "Raleway", sans-serif;
+      background: linear-gradient(120deg, #ff5f9e, #b66cff);
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .container {
+      width: 600px;
+      padding: 60px 50px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 10px 45px rgba(0,0,0,0.18);
+      backdrop-filter: blur(18px);
+      text-align: center;
+    }
+
+    h2 {
+      font-size: 34px;
+      color: white;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    .line {
+      width: 60%;
+      margin: 0 auto 30px auto;
+      height: 1.5px;
+      background: rgba(255,255,255,0.4);
+    }
+
+    input {
+      width: 100%;
+      padding: 16px 20px;
+      font-size: 16px;
+      border-radius: 35px;
+      border: none;
+      background: rgba(0, 0, 0, 0.28);
+      color: #fff;
+      outline: none;
+      margin-bottom: 25px;
+      letter-spacing: 0.5px;
+    }
+
+    input::placeholder {
+      color: #eee;
+    }
+
+    input:focus {
+      background: rgba(0, 0, 0, 0.33);
+      box-shadow: 0 0 10px rgba(255,255,255,0.35);
+    }
+
+    button {
+      width: 100%;
+      padding: 16px;
+      background: white;
+      border: none;
+      border-radius: 35px;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.25s;
+      color: #333;
+    }
+
+    button:hover {
+      background: #f2f2f2;
+      transform: translateY(-1px);
+    }
+
+    #msg {
+      margin-top: 20px;
+      font-size: 15px;
+      font-weight: 600;
+      color: white;
+    }
+
+    .success { color: #00ffb3; }
+    .error { color: #ff6767; }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <h2>Generate Credential ID</h2>
+    <div class="line"></div>
+
+    <input type="email" id="email" placeholder="Enter your email">
+
+    <button onclick="generate()">Generate Credential ID</button>
+
+    <p id="msg"></p>
+  </div>
+
+<script>
+
+  async function generate() {
+    const email = document.getElementById("email").value;
+    const msg = document.getElementById("msg");
+
+    msg.innerText = "Processing...";
+    msg.className = "";
+
+    const res = await fetch("http://localhost:5600/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      msg.innerText = "Credential ID sent to email!";
+      msg.className = "success";
+
+      // 🔥 REDIRECT ADDED HERE
+      setTimeout(() => {
+        window.location.href = "/signin.html";  // Change if your file name is different
+      }, 1200);
+
+    } else {
+      msg.innerText = data.message;
+      msg.className = "error";
+    }
+  }
+</script>
+
+</body>
+</html>

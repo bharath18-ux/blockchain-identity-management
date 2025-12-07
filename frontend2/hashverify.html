@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Hash Verification</title>
+
+  <!-- FONT -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(to bottom, #ffffff 65%, #b7dfe7 65%);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding-top: 60px;
+    }
+
+    .box {
+      width: 450px;
+      background: #f3f3f3;
+      padding: 30px;
+      border-radius: 14px;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.15);
+      border-top: 6px solid #f05432;
+      animation: fadeIn 0.6s ease-in-out;
+      text-align: left;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h2 {
+      text-align: center;
+      font-size: 26px;
+      margin-bottom: 20px;
+      font-weight: 600;
+      color: #f05432;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #444;
+    }
+
+    input {
+      width: 100%;
+      padding: 13px 15px;
+      border-radius: 26px;
+      border: 1px solid #c9c9c9;
+      margin-bottom: 20px;
+      font-size: 14px;
+      outline: none;
+      background: #ffffff;
+      transition: 0.2s;
+    }
+
+    input:focus {
+      border-color: #f05432;
+      box-shadow: 0 0 0 3px rgba(240, 84, 50, 0.2);
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #f05432;
+      border: none;
+      color: white;
+      border-radius: 26px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.25s;
+    }
+
+    button:hover {
+      background: #d94626;
+    }
+
+    #status {
+      margin-top: 15px;
+      font-size: 16px;
+      font-weight: 600;
+      text-align: center;
+
+      /* 🔥 FIXED WRAP */
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      max-width: 100%;
+      padding: 10px;
+      line-height: 1.5;
+    }
+
+    .tx-hash {
+      font-size: 14px;
+      color: #008000;
+      word-break: break-all;
+    }
+
+    #downloadBtn {
+      display: none;
+      margin-top: 18px;
+      background: #2ca24c;
+      border-radius: 26px;
+    }
+
+    #downloadBtn:hover {
+      background: #1e8439;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="box">
+  <h2>Hash Verification</h2>
+
+  <label>Hash *</label>
+  <input id="hashValue" placeholder="Enter Hash Here">
+
+  <button onclick="verifyHash()">Verify Hash</button>
+
+  <p id="status"></p>
+
+  <button id="downloadBtn" onclick="downloadPDF()">Download Proof PDF</button>
+</div>
+
+<script>
+let proofData = null;
+
+async function verifyHash() {
+  const hash = document.getElementById("hashValue").value.trim();
+
+  const res = await fetch("http://localhost:7200/verify-hash", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ hash })
+  });
+
+  const data = await res.json();
+
+  if (!data.success) {
+    document.getElementById("status").innerHTML = "Invalid Hash";
+    document.getElementById("status").style.color = "red";
+    document.getElementById("downloadBtn").style.display = "none";
+    return;
+  }
+
+  // Show verified
+  document.getElementById("status").innerHTML =
+    "Verified: " + data.name + " (" + data.identity + ")";
+  document.getElementById("status").style.color = "green";
+
+  proofData = { ...data, hash };
+
+  document.getElementById("downloadBtn").style.display = "block";
+
+  if (data.triggerMetaMask) {
+    await triggerMetaMaskTransaction(hash);
+  }
+}
+
+
+// -------------------------------------
+// META MASK FUNCTION (FINAL VERSION)
+// -------------------------------------
+async function triggerMetaMaskTransaction(hash) {
+  if (!window.ethereum) {
+    alert("MetaMask not detected!");
+    return;
+  }
+
+  try {
+    const accounts = await ethereum.request({
+      method: "eth_requestAccounts"
+    });
+
+    const sender = accounts[0];
+
+    // Clean hash → valid hex
+    let clean = hash.replace(/^0x/, "");
+    if (clean.length % 2 !== 0) clean = clean.slice(0, -1);
+    clean = clean.slice(0, 64).padEnd(64, "0");
+
+    const txParams = {
+      from: sender,
+
+      /* 🔥 Dummy address that accepts data safely */
+      to: "0x0000000000000000000000000000000000000001",
+
+      value: "0x0",
+
+      /* 🔥 Fixed gas (50000) */
+      gas: "0x7A120",
+
+      data: "0x" + clean
+    };
+
+    const txHash = await ethereum.request({
+      method: "eth_sendTransaction",
+      params: [txParams]
+    });
+
+    document.getElementById("status").innerHTML =
+      `Verified & Stored on Sepolia ✔<br><span class="tx-hash">Tx: ${txHash}</span>`;
+    document.getElementById("status").style.color = "green";
+
+  } catch (err) {
+    console.error("MetaMask Error:", err);
+    alert("Transaction Failed: " + err.message);
+  }
+}
+
+
+// -------------------------------------
+// PDF DOWNLOAD
+// -------------------------------------
+async function downloadPDF() {
+  const res = await fetch("http://localhost:7200/generate-pdf", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(proofData)
+  });
+
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "verification_proof.pdf";
+  a.click();
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Hash Key</title>
+
+  <!-- Raleway Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      background: linear-gradient(120deg, #ff5f9e, #b66cff);
+      height: 100vh;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Raleway", sans-serif;
+    }
+
+    .box {
+      width: 520px;
+      padding: 45px 35px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.18);
+      box-shadow: 0 10px 45px rgba(0,0,0,0.18);
+      backdrop-filter: blur(18px);
+      text-align: center;
+      color: #fff;
+    }
+
+    h2 {
+      font-size: 30px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: white;
+      border-bottom: 2px solid rgba(255,255,255,0.35);
+      display: inline-block;
+      width: 100%;
+      padding-bottom: 8px;
+    }
+
+    .hash {
+      display: block;
+      padding: 16px 20px;
+      margin-top: 15px;
+      border-radius: 18px;
+      background: rgba(0, 0, 0, 0.28);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      border: none;
+      word-break: break-all;
+      box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.15);
+    }
+
+    button {
+      margin-top: 22px;
+      padding: 15px 20px;
+      background: #ffffff;
+      border: none;
+      border-radius: 35px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #333;
+      width: 100%;
+      transition: 0.25s;
+    }
+
+    button:hover {
+      background: #f1f1f1;
+      transform: translateY(-1px);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="box">
+    <h2>Your Hash Key</h2>
+    <div id="hash" class="hash"></div>
+    <button onclick="copyHash()">Copy Hash</button>
+  </div>
+
+<script>
+  const hash = new URLSearchParams(window.location.search).get('hash') || 'No hash';
+  document.getElementById('hash').innerText = hash;
+  function copyHash(){ navigator.clipboard.writeText(hash).then(()=>alert('Copied')); }
+</script>
+
+</body>
+</html>
