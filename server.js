@@ -2,18 +2,16 @@
 import express from "express";
 import cors from "cors";
 import connectDB from "./db.js";
-import identityRoutes from "./routes/identityRoutes.js"; // we will include inline route below
-
+import Identity from "./models/Identity.js";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Connect MongoDB
 connectDB();
 
-// inline routes file alternative (if you prefer single file)
-import Identity from "./models/Identity.js";
-
+// ➤ Add identity
 app.post("/api/identity/add", async (req, res) => {
   try {
     const { type, number, owner } = req.body;
@@ -25,17 +23,25 @@ app.post("/api/identity/add", async (req, res) => {
   }
 });
 
+// ➤ Verify identity
 app.post("/api/identity/verify", async (req, res) => {
   try {
     const { type, number } = req.body;
     const found = await Identity.findOne({ type, number });
     if (!found) return res.json({ success: false });
-    return res.json({ success: true, hash: found.hash, owner: found.owner });
+
+    return res.json({
+      success: true,
+      hash: found.hash,
+      owner: found.owner
+    });
   } catch (err) {
     return res.json({ success: false });
   }
 });
 
-app.listen(5000, () => {
-  console.log("🔥 Identity Backend running on http://localhost:5000");
+// PORT FIX FOR RENDER
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`🔥 Identity Backend running on port ${PORT}`);
 });
