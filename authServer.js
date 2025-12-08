@@ -33,10 +33,12 @@ let otpStore = {};   // otpStore[email] = "123456"
 
 // ---------------- EMAIL TRANSPORT (ONLY THIS PART CHANGED) ----------------
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 587,        // must be 587 on Render
+  secure: false,    // important!
   auth: {
-    user: process.env.SMTP_USER,   // your Gmail from .env
-    pass: process.env.SMTP_PASS    // Gmail App Password from .env
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
   }
 });
 
@@ -100,3 +102,4 @@ app.post("/verify-otp", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
