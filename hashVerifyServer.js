@@ -1,3 +1,4 @@
+// hashServer.js
 import express from "express";
 import cors from "cors";
 import { PDFDocument, StandardFonts } from "pdf-lib";
@@ -8,7 +9,7 @@ app.use(cors());
 app.use(express.json());
 
 // -----------------------------
-// Hash Database (JSON Storage)
+// Hash Database (Local JSON)
 // -----------------------------
 const hashDB = {
   // Bharath
@@ -67,14 +68,12 @@ app.post("/verify-hash", (req, res) => {
 });
 
 // ------------------------------------------------------
-// PDF GENERATION (INVOICE STYLE)
+// PDF GENERATION (Render-Compatible)
 // ------------------------------------------------------
 app.post("/generate-pdf", async (req, res) => {
   const { name, identity, timestamp, hash } = req.body;
 
   const pdfDoc = await PDFDocument.create();
-
-  // A4 size
   const page = pdfDoc.addPage([595, 842]);
 
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -82,30 +81,12 @@ app.post("/generate-pdf", async (req, res) => {
 
   let y = 800;
 
-  // HEADER
-  page.drawText("VERIFICATION PROOF", {
-    x: 40,
-    y,
-    size: 28,
-    font: bold
-  });
-
-  page.drawLine({
-    start: { x: 40, y: y - 10 },
-    end: { x: 555, y: y - 10 },
-    thickness: 1,
-  });
+  page.drawText("VERIFICATION PROOF", { x: 40, y, size: 28, font: bold });
+  page.drawLine({ start: { x: 40, y: y - 10 }, end: { x: 555, y: y - 10 }, thickness: 1 });
 
   y -= 60;
 
-  // DETAILS LEFT COLUMN
-  page.drawText("DETAILS :", {
-    x: 40,
-    y,
-    size: 14,
-    font: bold
-  });
-
+  page.drawText("DETAILS :", { x: 40, y, size: 14, font: bold });
   y -= 20;
 
   page.drawText(`Name: ${name}`, { x: 40, y, size: 12, font });
@@ -120,50 +101,26 @@ app.post("/generate-pdf", async (req, res) => {
   page.drawText(`Verified At: ${timestamp}`, { x: 40, y, size: 12, font });
   y -= 20;
 
-  page.drawLine({
-    start: { x: 40, y },
-    end: { x: 555, y },
-    thickness: 1
-  });
-
-  // STATUS SECTION
-  y -= 40;
-
-  page.drawText("Status", {
-    x: 40,
-    y,
-    size: 14,
-    font: bold
-  });
-
-  page.drawText("Verified Successfully", {
-    x: 300,
-    y,
-    size: 14,
-    font
-  });
+  page.drawLine({ start: { x: 40, y }, end: { x: 555, y }, thickness: 1 });
 
   y -= 40;
 
-  page.drawLine({
-    start: { x: 40, y },
-    end: { x: 555, y },
-    thickness: 1
-  });
+  page.drawText("Status", { x: 40, y, size: 14, font: bold });
+  page.drawText("Verified Successfully", { x: 300, y, size: 14, font });
 
-  // FOOTER
-  page.drawText("THANK YOU", {
-    x: 450,
-    y: 50,
-    size: 16,
-    font: bold
-  });
+  y -= 40;
 
-  // SAVE FILE
+  page.drawLine({ start: { x: 40, y }, end: { x: 555, y }, thickness: 1 });
+
+  page.drawText("THANK YOU", { x: 450, y: 50, size: 16, font: bold });
+
   const pdfBytes = await pdfDoc.save();
-  fs.writeFileSync("verification_proof.pdf", pdfBytes);
 
-  res.download("verification_proof.pdf");
+  // Save PDF safely in Render temporary folder
+  const filePath = "/tmp/verification_proof.pdf";
+  fs.writeFileSync(filePath, pdfBytes);
+
+  res.download(filePath);
 });
 
 // ------------------------------------------------------
