@@ -12,14 +12,17 @@ app.use(express.json());
 const otpStore = {};
 const OTP_TTL_MS = 5 * 60 * 1000;
 
-// ⭐ BREVO SMTP CONFIG (REPLACES GMAIL)
+// ⭐ BREVO SMTP CONFIG (FINAL FIX)
 const transporter = nodemailer.createTransport({
   host: "smtp-relay.brevo.com",
   port: 587,
   secure: false,
   auth: {
-    user: process.env.SMTP_USER,   // example: your login like 9dce78001@smtp-brevo.com
+    user: process.env.SMTP_USER,   // example: 9dce78001@smtp-brevo.com
     pass: process.env.SMTP_PASS    // example: FkjD1f69ndLSHCyP
+  },
+  tls: {
+    rejectUnauthorized: false
   }
 });
 
@@ -47,7 +50,7 @@ app.post("/send-otp", async (req, res) => {
     `;
 
     await transporter.sendMail({
-      from: process.env.SMTP_USER,  
+      from: process.env.SMTP_USER,
       to: email,
       subject: "Your OTP Code",
       html
