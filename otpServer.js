@@ -3,7 +3,7 @@ import cors from "cors";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 
-dotenv.config();  // ⭐ Loads .env values
+dotenv.config();
 
 const app = express();
 app.use(cors());
@@ -12,22 +12,27 @@ app.use(express.json());
 const otpStore = {};
 const OTP_TTL_MS = 5 * 60 * 1000;
 
-// ⭐ GMAIL SMTP USING APP PASSWORD (SAFE: uses .env)
+// ⭐ BREVO SMTP CONFIG (NOT GMAIL)
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: process.env.SMTP_HOST,   // smtp-relay.brevo.com
+  port: process.env.SMTP_PORT,   // 587
+  secure: false,                 // Brevo requires false for port 587
   auth: {
-    user: process.env.SMTP_USER,   // from .env
-    pass: process.env.SMTP_PASS    // from .env
+    user: process.env.SMTP_USER, // Brevo SMTP login
+    pass: process.env.SMTP_PASS  // Brevo SMTP password
   }
 });
 
+// Generate OTP
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+// ---------------- SEND OTP ----------------
 app.post("/send-otp", async (req, res) => {
   try {
     const { email, did, cid } = req.body;
+
     if (!email || !did || !cid)
       return res.json({ success: false, message: "Missing fields" });
 
@@ -45,21 +50,23 @@ app.post("/send-otp", async (req, res) => {
     `;
 
     await transporter.sendMail({
-      from: process.env.SMTP_USER,  // sender Gmail
+      from: process.env.SMTP_USER,  // MUST MATCH BREVO LOGIN
       to: email,
       subject: "Your OTP Code",
       html
     });
 
     console.log("📨 OTP sent to:", email, "=>", otp);
+
     return res.json({ success: true });
 
   } catch (err) {
-    console.log("❌ send-otp error:", err.message);
-    return res.json({ success: false, message: "Email error" });
+    console.log("❌ send-otp error:", err);
+    return res.json({ success: false, message: "Failed to send OTP" });
   }
 });
 
+// ---------------- VERIFY OTP ----------------
 app.post("/verify-otp", (req, res) => {
   const { email, otp } = req.body;
   const entry = otpStore[email];
@@ -80,6 +87,7 @@ app.post("/verify-otp", (req, res) => {
   return res.json({ success: false, message: "Invalid OTP" });
 });
 
+// ---------------- START SERVER ----------------
 app.listen(5001, () =>
   console.log("🔥 OTP Backend running on http://localhost:5001")
 );
