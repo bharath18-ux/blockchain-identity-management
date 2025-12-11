@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import fetch from "node-fetch";
 
 dotenv.config(); // Load .env
 
@@ -32,50 +31,43 @@ async function sendBrevoEmail(toEmail, subject, htmlContent) {
     const data = await response.json();
     console.log("Brevo Response:", data);
 
-    if (data.messageId) return true;
-    return false;
+    // If Brevo returns messageId → Email sent successfully
+    return data.messageId ? true : false;
 
   } catch (err) {
-    console.log("Brevo error:", err);
+    console.log("Brevo Send Error:", err);
     return false;
   }
 }
 
 // ------------------ GENERATE CREDENTIAL ID ROUTE ------------------
 app.post("/generate", async (req, res) => {
-  try {
-    const { email } = req.body;
-    if (!email)
-      return res.json({ success: false, message: "Email missing" });
+  const { email } = req.body;
 
-    // Generate Credential ID
-    const random = Math.random().toString(36).substring(2, 15).toUpperCase();
-    const credentialID = "CID-" + random;
+  if (!email)
+    return res.json({ success: false, message: "Email missing" });
 
-    // Email HTML
-    const html = `
-      <div style="font-family:Arial;padding:15px;">
-        <h2>Your Credential ID</h2>
-        <p>Your generated Credential ID is:</p>
-        <h1>${credentialID}</h1>
-        <p>Save this ID securely.</p>
-      </div>
-    `;
+  // Generate Credential ID
+  const random = Math.random().toString(36).substring(2, 15).toUpperCase();
+  const credentialID = "CID-" + random;
 
-    // Send Email via Brevo
-    const sent = await sendBrevoEmail(email, "Your Credential ID", html);
+  // Email HTML content
+  const html = `
+    <div style="font-family:Arial;padding:15px;">
+      <h2>Your Credential ID</h2>
+      <p>Your generated Credential ID is:</p>
+      <h1>${credentialID}</h1>
+      <p>Save this ID securely.</p>
+    </div>
+  `;
 
-    if (!sent) {
-      return res.json({ success: false, message: "Failed to send email" });
-    }
+  // Send via Brevo
+  const sent = await sendBrevoEmail(email, "Your Credential ID", html);
 
-    // Success Response
-    return res.json({ success: true, credentialID });
+  if (!sent)
+    return res.json({ success: false, message: "Failed to send email" });
 
-  } catch (err) {
-    console.log("Server error:", err);
-    return res.json({ success: false, message: "Internal error" });
-  }
+  return res.json({ success: true, credentialID });
 });
 
 // ------------------ START SERVER ------------------
