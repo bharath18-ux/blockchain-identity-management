@@ -1,6 +1,5 @@
 import express from "express";
 import cors from "cors";
-import nodemailer from "nodemailer";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 
@@ -36,55 +35,63 @@ mongoose.connect(process.env.MONGO_URI)
 // ---------------- OTP STORE ----------------
 let otpStore = {};
 
-// ---------------- EMAIL TRANSPORT ----------------
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
-  }
-});
+// ---------------- BREVO OTP SEND FUNCTION ----------------
+async function sendBrevoOTP(email, otp) {
+  const htmlContent = `
+    <p>Your OTP is:</p>
+    <h1 style="letter-spacing:4px;">${otp}</h1>
+    <p>Valid for 5 minutes.</p>
+  `;
+
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "accept": "application/json",
+      "content-type": "application/json",
+      "api-key": process.env.BREVO_API_KEY
+    },
+    body: JSON.stringify({
+      sender: { name: "OTP Service", email: process.env.SENDER_EMAIL },
+      to: [{ email }],
+      subject: "Your OTP Code",
+      htmlContent
+    })
+  });
+
+  return response.json();
+}
 
 // ---------------- SEND OTP ROUTE ----------------
 app.post("/send-otp", async (req, res) => {
   const { email, password } = req.body;
 
-  // 1️⃣ CHECK LOGIN FIRST
-  if (!email || !password) {
+  if (!email || !password)
     return res.json({ success: false, message: "Email & password required" });
-  }
 
-  if (!loginDB[email]) {
+  if (!loginDB[email])
     return res.json({ success: false, message: "User not found" });
-  }
 
-  if (loginDB[email] !== password) {
+  if (loginDB[email] !== password)
     return res.json({ success: false, message: "Incorrect password" });
-  }
 
-  // 2️⃣ GENERATE OTP
+  // Generate OTP
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   otpStore[email] = otp;
 
-  // 3️⃣ SEND EMAIL
   try {
-    await transporter.sendMail({
-      from: process.env.SMTP_USER,
-      to: email,
-      subject: "Your OTP Code",
-      html: `
-        <p>Your OTP is:</p>
-        <h1 style="letter-spacing:4px;">${otp}</h1>
-        <p>This OTP is valid for 5 minutes.</p>
-      `
-    });
+    const result = await sendBrevoOTP(email, otp);
 
-    return res.json({ success: true, message: "OTP sent to email" });
+    if (result.messageId) {
+      console.log(`📨 Brevo OTP sent to ${email}: ${otp}`);
+      return res.json({ success: true, message: "OTP sent to email" });
+    } else {
+      console.log("❌ Brevo Error:", result);
+      return res.json({ success: false, message: "Failed to send OTP" });
+    }
+
   } catch (err) {
-    console.log("Email Error:", err);
-    return res.json({ success: false, message: "Failed to send OTP" });
+    console.log("❌ Brevo API Error:", err);
+    return res.json({ success: false, message: "Email sending failed" });
   }
 });
 
@@ -95,9 +102,8 @@ app.post("/verify-otp", async (req, res) => {
   if (!email || !otp)
     return res.json({ success: false, message: "Email & OTP required" });
 
-  if (otpStore[email] !== otp) {
+  if (otpStore[email] !== otp)
     return res.json({ success: false, message: "Invalid OTP" });
-  }
 
   delete otpStore[email];
 
