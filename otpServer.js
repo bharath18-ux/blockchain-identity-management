@@ -1,9 +1,8 @@
 import express from "express";
 import cors from "cors";
-import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 
-dotenv.config();  // ⭐ Loads .env values
+dotenv.config();
 
 const app = express();
 app.use(cors());
@@ -12,20 +11,7 @@ app.use(express.json());
 const otpStore = {};
 const OTP_TTL_MS = 5 * 60 * 1000;
 
-// ⭐ BREVO SMTP CONFIG (FINAL FIX)
-const transporter = nodemailer.createTransport({
-  host: "smtp-relay.brevo.com",
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,   // example: 9dce78001@smtp-brevo.com
-    pass: process.env.SMTP_PASS    // example: FkjD1f69ndLSHCyP
-  },
-  tls: {
-    rejectUnauthorized: false
-  }
-});
-
+// ⭐ NO SMTP — USING BREVO HTTPS API
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
@@ -33,13 +19,14 @@ function generateOTP() {
 app.post("/send-otp", async (req, res) => {
   try {
     const { email, did, cid } = req.body;
+
     if (!email || !did || !cid)
       return res.json({ success: false, message: "Missing fields" });
 
     const otp = generateOTP();
     otpStore[email] = { otp, createdAt: Date.now() };
 
-    const html = `
+    const htmlContent = `
       <div style="font-family:Arial;padding:18px;">
         <h2>Your OTP</h2>
         <h1>${otp}</h1>
@@ -49,18 +36,32 @@ app.post("/send-otp", async (req, res) => {
       </div>
     `;
 
-    await transporter.sendMail({
-      from: process.env.SMTP_USER,
-      to: email,
-      subject: "Your OTP Code",
-      html
+    // ⭐ BREVO EMAIL API (WORKS ON RENDER)
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": process.env.BREVO_API_KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        sender: { name: "OTP Service", email: "no-reply@yourdomain.com" },
+        to: [{ email }],
+        subject: "Your OTP Code",
+        htmlContent
+      })
     });
 
-    console.log("📨 OTP sent to:", email, "=>", otp);
+    const data = await response.json();
+    console.log("Brevo API:", data);
+
+    if (!response.ok) {
+      return res.json({ success: false, message: "Failed to send email" });
+    }
+
     return res.json({ success: true });
 
   } catch (err) {
-    console.log("❌ send-otp error:", err.message);
+    console.log("send-otp error:", err.message);
     return res.json({ success: false, message: "Email error" });
   }
 });
@@ -86,5 +87,5 @@ app.post("/verify-otp", (req, res) => {
 });
 
 app.listen(5001, () =>
-  console.log("🔥 OTP Backend running on http://localhost:5001")
+  console.log("🔥 OTP Backend USING BREVO API running on Render")
 );
