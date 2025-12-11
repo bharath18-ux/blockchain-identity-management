@@ -44,7 +44,7 @@ app.post("/send-otp", async (req, res) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        sender: { name: "OTP Service", email: "no-reply@yourdomain.com" },
+        sender: { name: "OTP Service", email: "neymarjrfcb0980@gmail.com" },
         to: [{ email }],
         subject: "Your OTP Code",
         htmlContent
@@ -89,3 +89,4 @@ app.post("/verify-otp", (req, res) => {
 app.listen(5001, () =>
   console.log("🔥 OTP Backend USING BREVO API running on Render")
 );
+
