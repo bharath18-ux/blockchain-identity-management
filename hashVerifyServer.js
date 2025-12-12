@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import fs from "fs";
 
 const app = express();
 app.use(cors());
@@ -42,7 +43,7 @@ const hashDB = {
 };
 
 // ------------------------------------------------------
-// Verify Hash (format date + time properly)
+// Verify Hash
 // ------------------------------------------------------
 app.post("/verify-hash", (req, res) => {
   const { hash } = req.body;
@@ -52,13 +53,7 @@ app.post("/verify-hash", (req, res) => {
   }
 
   const data = hashDB[hash];
-
-  // Correct formatted timestamp
-  const now = new Date();
-  const date = now.toLocaleDateString("en-IN");
-  const time = now.toLocaleTimeString("en-IN");
-
-  const formattedTimestamp = Date: ${date}, Time: ${time};
+  const timestamp = new Date().toLocaleString();
 
   res.json({
     success: true,
@@ -66,13 +61,13 @@ app.post("/verify-hash", (req, res) => {
     triggerMetaMask: true,
     name: data.name,
     identity: data.identity,
-    timestamp: formattedTimestamp,
+    timestamp,
     hash
   });
 });
 
 // ------------------------------------------------------
-// MODERN COLORFUL PDF (NO QR)
+// MODERN COLORFUL PDF (QR CODE REMOVED)
 // ------------------------------------------------------
 app.post("/generate-pdf", async (req, res) => {
   const { name, identity, timestamp, hash } = req.body;
@@ -87,7 +82,7 @@ app.post("/generate-pdf", async (req, res) => {
   const textDark = rgb(0.1, 0.1, 0.1);
   const grey = rgb(0.6, 0.6, 0.6);
 
-  // HEADER BAR
+  // HEADER
   page.drawRectangle({
     x: 0,
     y: 780,
@@ -104,9 +99,8 @@ app.post("/generate-pdf", async (req, res) => {
     color: rgb(1, 1, 1)
   });
 
-  // DETAILS SECTION
+  // DETAILS
   let y = 740;
-
   page.drawText("DETAILS", {
     x: 40,
     y,
@@ -154,7 +148,7 @@ app.post("/generate-pdf", async (req, res) => {
 
   y -= 40;
 
-  // STATUS BOX
+  // STATUS
   page.drawText("STATUS", {
     x: 40,
     y,
@@ -181,7 +175,7 @@ app.post("/generate-pdf", async (req, res) => {
     color: rgb(0.1, 0.5, 0.1)
   });
 
-  // FOOTER
+  // FOOTER (Moved Up)
   page.drawText("THANK YOU", {
     x: 420,
     y: 230,
