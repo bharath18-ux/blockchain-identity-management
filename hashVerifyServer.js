@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import fs from "fs";
 
 const app = express();
 app.use(cors());
@@ -43,7 +42,7 @@ const hashDB = {
 };
 
 // ------------------------------------------------------
-// Verify Hash
+// Verify Hash (format date + time properly)
 // ------------------------------------------------------
 app.post("/verify-hash", (req, res) => {
   const { hash } = req.body;
@@ -54,12 +53,12 @@ app.post("/verify-hash", (req, res) => {
 
   const data = hashDB[hash];
 
-  // Format date + time separately
+  // Correct formatted timestamp
   const now = new Date();
-  const date = now.toLocaleDateString();
-  const time = now.toLocaleTimeString();
+  const date = now.toLocaleDateString("en-IN");
+  const time = now.toLocaleTimeString("en-IN");
 
-  const formattedTimestamp = Date : ${date}, Time : ${time};
+  const formattedTimestamp = Date: ${date}, Time: ${time};
 
   res.json({
     success: true,
@@ -73,13 +72,13 @@ app.post("/verify-hash", (req, res) => {
 });
 
 // ------------------------------------------------------
-// MODERN COLORFUL PDF (QR REMOVED) + FORMATTED TIME
+// MODERN COLORFUL PDF (NO QR)
 // ------------------------------------------------------
 app.post("/generate-pdf", async (req, res) => {
   const { name, identity, timestamp, hash } = req.body;
 
   const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([595, 842]);
+  const page = pdfDoc.addPage([595, 842]); // A4 page
 
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -88,7 +87,7 @@ app.post("/generate-pdf", async (req, res) => {
   const textDark = rgb(0.1, 0.1, 0.1);
   const grey = rgb(0.6, 0.6, 0.6);
 
-  // HEADER
+  // HEADER BAR
   page.drawRectangle({
     x: 0,
     y: 780,
@@ -105,8 +104,9 @@ app.post("/generate-pdf", async (req, res) => {
     color: rgb(1, 1, 1)
   });
 
-  // DETAILS
+  // DETAILS SECTION
   let y = 740;
+
   page.drawText("DETAILS", {
     x: 40,
     y,
@@ -154,7 +154,7 @@ app.post("/generate-pdf", async (req, res) => {
 
   y -= 40;
 
-  // STATUS
+  // STATUS BOX
   page.drawText("STATUS", {
     x: 40,
     y,
@@ -198,7 +198,7 @@ app.post("/generate-pdf", async (req, res) => {
     color: grey
   });
 
-  // SEND PDF
+  // Send PDF
   const pdfBytes = await pdfDoc.save();
   res.setHeader("Content-Type", "application/pdf");
   res.send(Buffer.from(pdfBytes));
