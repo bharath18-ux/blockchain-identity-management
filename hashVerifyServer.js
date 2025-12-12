@@ -1,7 +1,6 @@
-// hashServer.js
 import express from "express";
 import cors from "cors";
-import { PDFDocument, StandardFonts } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import fs from "fs";
 
 const app = express();
@@ -9,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 // -----------------------------
-// Hash Database (Local JSON)
+// Hash Database (JSON Storage)
 // -----------------------------
 const hashDB = {
   // Bharath
@@ -68,59 +67,134 @@ app.post("/verify-hash", (req, res) => {
 });
 
 // ------------------------------------------------------
-// PDF GENERATION (Render-Compatible)
+// MODERN COLORFUL PDF GENERATION (INVOICE STYLE)
 // ------------------------------------------------------
 app.post("/generate-pdf", async (req, res) => {
   const { name, identity, timestamp, hash } = req.body;
 
   const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([595, 842]);
+  const page = pdfDoc.addPage([595, 842]); // A4
 
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-  let y = 800;
+  // BRAND COLORS
+  const primary = rgb(0.48, 0.12, 0.64);     // Purple
+  const textDark = rgb(0.1, 0.1, 0.1);
+  const grey = rgb(0.6, 0.6, 0.6);
 
-  page.drawText("VERIFICATION PROOF", { x: 40, y, size: 28, font: bold });
-  page.drawLine({ start: { x: 40, y: y - 10 }, end: { x: 555, y: y - 10 }, thickness: 1 });
+  // ================================
+  // HEADER BLOCK (Purple Bar)
+  // ================================
+  page.drawRectangle({
+    x: 0,
+    y: 780,
+    width: 595,
+    height: 60,
+    color: primary
+  });
 
-  y -= 60;
+  page.drawText("VERIFICATION PROOF", {
+    x: 40,
+    y: 800,
+    size: 26,
+    font: bold,
+    color: rgb(1, 1, 1)
+  });
 
-  page.drawText("DETAILS :", { x: 40, y, size: 14, font: bold });
-  y -= 20;
+  // ================================
+  // DETAILS SECTION TITLE
+  // ================================
+  let y = 740;
 
-  page.drawText(`Name: ${name}`, { x: 40, y, size: 12, font });
-  y -= 18;
+  page.drawText("DETAILS", {
+    x: 40,
+    y,
+    size: 16,
+    font: bold,
+    color: primary
+  });
 
-  page.drawText(`Identity Type: ${identity}`, { x: 40, y, size: 12, font });
-  y -= 18;
+  y -= 25;
 
-  page.drawText(`Hash: ${hash}`, { x: 40, y, size: 12, font });
-  y -= 18;
+  const leftX = 40;
+  const rightX = 300;
 
-  page.drawText(`Verified At: ${timestamp}`, { x: 40, y, size: 12, font });
-  y -= 20;
+  function row(label, value) {
+    page.drawText(label, {
+      x: leftX,
+      y,
+      size: 12,
+      font: bold,
+      color: grey
+    });
 
-  page.drawLine({ start: { x: 40, y }, end: { x: 555, y }, thickness: 1 });
+    page.drawText(value, {
+      x: rightX,
+      y,
+      size: 12,
+      font,
+      color: textDark
+    });
+
+    y -= 20;
+  }
+
+  row("Name:", name);
+  row("Identity Type:", identity);
+  row("Hash:", hash);
+  row("Verified At:", timestamp);
+
+  y -= 10;
+
+  page.drawLine({
+    start: { x: 40, y },
+    end: { x: 555, y },
+    thickness: 1,
+    color: grey
+  });
 
   y -= 40;
 
-  page.drawText("Status", { x: 40, y, size: 14, font: bold });
-  page.drawText("Verified Successfully", { x: 300, y, size: 14, font });
+  // STATUS BLOCK
+  page.drawText("STATUS", {
+    x: 40,
+    y,
+    size: 16,
+    font: bold,
+    color: primary
+  });
 
-  y -= 40;
+  y -= 25;
 
-  page.drawLine({ start: { x: 40, y }, end: { x: 555, y }, thickness: 1 });
+  page.drawRectangle({
+    x: 40,
+    y: y - 40,
+    width: 515,
+    height: 40,
+    color: rgb(0.95, 0.95, 1)
+  });
 
-  page.drawText("THANK YOU", { x: 450, y: 50, size: 16, font: bold });
+  page.drawText("Verified Successfully", {
+    x: 60,
+    y: y - 15,
+    size: 14,
+    font: bold,
+    color: rgb(0.1, 0.5, 0.1)
+  });
+
+  // FOOTER
+  page.drawText("THANK YOU", {
+    x: 450,
+    y: 40,
+    size: 14,
+    font: bold,
+    color: primary
+  });
 
   const pdfBytes = await pdfDoc.save();
-
-  // Save PDF safely in Render temporary folder
-  const filePath = "/tmp/verification_proof.pdf";
-  fs.writeFileSync(filePath, pdfBytes);
-
-  res.download(filePath);
+  res.setHeader("Content-Type", "application/pdf");
+  res.send(Buffer.from(pdfBytes));
 });
 
 // ------------------------------------------------------
