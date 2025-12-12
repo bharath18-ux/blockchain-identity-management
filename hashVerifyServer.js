@@ -53,7 +53,13 @@ app.post("/verify-hash", (req, res) => {
   }
 
   const data = hashDB[hash];
-  const timestamp = new Date().toLocaleString();
+
+  // Format date + time separately
+  const now = new Date();
+  const date = now.toLocaleDateString();
+  const time = now.toLocaleTimeString();
+
+  const formattedTimestamp = Date : ${date}, Time : ${time};
 
   res.json({
     success: true,
@@ -61,19 +67,19 @@ app.post("/verify-hash", (req, res) => {
     triggerMetaMask: true,
     name: data.name,
     identity: data.identity,
-    timestamp,
+    timestamp: formattedTimestamp,
     hash
   });
 });
 
 // ------------------------------------------------------
-// MODERN COLORFUL PDF (QR CODE REMOVED)
+// MODERN COLORFUL PDF (QR REMOVED) + FORMATTED TIME
 // ------------------------------------------------------
 app.post("/generate-pdf", async (req, res) => {
   const { name, identity, timestamp, hash } = req.body;
 
   const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([595, 842]); // A4 page
+  const page = pdfDoc.addPage([595, 842]);
 
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -175,7 +181,7 @@ app.post("/generate-pdf", async (req, res) => {
     color: rgb(0.1, 0.5, 0.1)
   });
 
-  // FOOTER (Moved Up)
+  // FOOTER
   page.drawText("THANK YOU", {
     x: 420,
     y: 230,
@@ -192,7 +198,7 @@ app.post("/generate-pdf", async (req, res) => {
     color: grey
   });
 
-  // Send PDF
+  // SEND PDF
   const pdfBytes = await pdfDoc.save();
   res.setHeader("Content-Type", "application/pdf");
   res.send(Buffer.from(pdfBytes));
