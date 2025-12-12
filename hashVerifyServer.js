@@ -2,7 +2,6 @@ import express from "express";
 import cors from "cors";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import fs from "fs";
-import QRCode from "qrcode";
 
 const app = express();
 app.use(cors());
@@ -68,7 +67,7 @@ app.post("/verify-hash", (req, res) => {
 });
 
 // ------------------------------------------------------
-// MODERN COLORFUL PDF WITH QR CODE & FULL HASH
+// MODERN COLORFUL PDF (QR CODE REMOVED)
 // ------------------------------------------------------
 app.post("/generate-pdf", async (req, res) => {
   const { name, identity, timestamp, hash } = req.body;
@@ -79,14 +78,11 @@ app.post("/generate-pdf", async (req, res) => {
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-  // Colors
   const primary = rgb(0.48, 0.12, 0.64);
   const textDark = rgb(0.1, 0.1, 0.1);
   const grey = rgb(0.6, 0.6, 0.6);
 
-  // ------------------------------------------
   // HEADER
-  // ------------------------------------------
   page.drawRectangle({
     x: 0,
     y: 780,
@@ -103,11 +99,8 @@ app.post("/generate-pdf", async (req, res) => {
     color: rgb(1, 1, 1)
   });
 
-  // ------------------------------------------
   // DETAILS
-  // ------------------------------------------
   let y = 740;
-
   page.drawText("DETAILS", {
     x: 40,
     y,
@@ -118,7 +111,6 @@ app.post("/generate-pdf", async (req, res) => {
 
   y -= 25;
 
-  // Columns
   function row(label, value) {
     page.drawText(label, {
       x: 40,
@@ -128,7 +120,6 @@ app.post("/generate-pdf", async (req, res) => {
       color: grey
     });
 
-    // full hash visible using width & lineBreak
     page.drawText(value, {
       x: 150,
       y,
@@ -157,9 +148,7 @@ app.post("/generate-pdf", async (req, res) => {
 
   y -= 40;
 
-  // ------------------------------------------
-  // STATUS BLOCK
-  // ------------------------------------------
+  // STATUS
   page.drawText("STATUS", {
     x: 40,
     y,
@@ -186,34 +175,10 @@ app.post("/generate-pdf", async (req, res) => {
     color: rgb(0.1, 0.5, 0.1)
   });
 
-  // ------------------------------------------------
-  // QR CODE (FULL DETAILS JSON)
-  // ------------------------------------------------
-  const qrPayload = {
-    name,
-    identity,
-    hash,
-    verifiedAt: timestamp,
-    status: "Verified Successfully"
-  };
-
-  const qrDataURL = await QRCode.toDataURL(JSON.stringify(qrPayload));
-  const qrImageBytes = Buffer.from(qrDataURL.split(",")[1], "base64");
-  const qrImage = await pdfDoc.embedPng(qrImageBytes);
-
-  page.drawImage(qrImage, {
-    x: 420,
-    y: 300,
-    width: 140,
-    height: 140
-  });
-
-  // ------------------------------------------
-  // FOOTER
-  // ------------------------------------------
+  // FOOTER (Moved Up)
   page.drawText("THANK YOU", {
     x: 420,
-    y: 200,
+    y: 230,
     size: 14,
     font: bold,
     color: primary
@@ -221,7 +186,7 @@ app.post("/generate-pdf", async (req, res) => {
 
   page.drawText("- Identity Management Team", {
     x: 420,
-    y: 180,
+    y: 210,
     size: 12,
     font,
     color: grey
@@ -236,4 +201,4 @@ app.post("/generate-pdf", async (req, res) => {
 // ------------------------------------------------------
 app.listen(7200, () =>
   console.log("Hash Verification Backend running at http://localhost:7200")
-);0
+);
