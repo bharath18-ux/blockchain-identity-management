@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import fs from "fs";
+import QRCode from "qrcode";
 
 const app = express();
 app.use(cors());
@@ -67,25 +68,25 @@ app.post("/verify-hash", (req, res) => {
 });
 
 // ------------------------------------------------------
-// MODERN COLORFUL PDF GENERATION (INVOICE STYLE)
+// MODERN COLORFUL PDF WITH QR CODE & FULL HASH
 // ------------------------------------------------------
 app.post("/generate-pdf", async (req, res) => {
   const { name, identity, timestamp, hash } = req.body;
 
   const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([595, 842]); // A4
+  const page = pdfDoc.addPage([595, 842]); // A4 page
 
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-  // BRAND COLORS
-  const primary = rgb(0.48, 0.12, 0.64);     // Purple
+  // Colors
+  const primary = rgb(0.48, 0.12, 0.64);
   const textDark = rgb(0.1, 0.1, 0.1);
   const grey = rgb(0.6, 0.6, 0.6);
 
-  // ================================
-  // HEADER BLOCK (Purple Bar)
-  // ================================
+  // ------------------------------------------
+  // HEADER
+  // ------------------------------------------
   page.drawRectangle({
     x: 0,
     y: 780,
@@ -102,9 +103,9 @@ app.post("/generate-pdf", async (req, res) => {
     color: rgb(1, 1, 1)
   });
 
-  // ================================
-  // DETAILS SECTION TITLE
-  // ================================
+  // ------------------------------------------
+  // DETAILS
+  // ------------------------------------------
   let y = 740;
 
   page.drawText("DETAILS", {
@@ -117,24 +118,24 @@ app.post("/generate-pdf", async (req, res) => {
 
   y -= 25;
 
-  const leftX = 40;
-  const rightX = 300;
-
+  // Columns
   function row(label, value) {
     page.drawText(label, {
-      x: leftX,
+      x: 40,
       y,
       size: 12,
       font: bold,
       color: grey
     });
 
+    // full hash visible using width & lineBreak
     page.drawText(value, {
-      x: rightX,
+      x: 150,
       y,
       size: 12,
       font,
-      color: textDark
+      color: textDark,
+      maxWidth: 400
     });
 
     y -= 20;
@@ -156,7 +157,9 @@ app.post("/generate-pdf", async (req, res) => {
 
   y -= 40;
 
+  // ------------------------------------------
   // STATUS BLOCK
+  // ------------------------------------------
   page.drawText("STATUS", {
     x: 40,
     y,
@@ -183,15 +186,48 @@ app.post("/generate-pdf", async (req, res) => {
     color: rgb(0.1, 0.5, 0.1)
   });
 
+  // ------------------------------------------------
+  // QR CODE (FULL DETAILS JSON)
+  // ------------------------------------------------
+  const qrPayload = {
+    name,
+    identity,
+    hash,
+    verifiedAt: timestamp,
+    status: "Verified Successfully"
+  };
+
+  const qrDataURL = await QRCode.toDataURL(JSON.stringify(qrPayload));
+  const qrImageBytes = Buffer.from(qrDataURL.split(",")[1], "base64");
+  const qrImage = await pdfDoc.embedPng(qrImageBytes);
+
+  page.drawImage(qrImage, {
+    x: 420,
+    y: 300,
+    width: 140,
+    height: 140
+  });
+
+  // ------------------------------------------
   // FOOTER
+  // ------------------------------------------
   page.drawText("THANK YOU", {
-    x: 450,
-    y: 40,
+    x: 420,
+    y: 200,
     size: 14,
     font: bold,
     color: primary
   });
 
+  page.drawText("- Identity Management Team", {
+    x: 420,
+    y: 180,
+    size: 12,
+    font,
+    color: grey
+  });
+
+  // Send PDF
   const pdfBytes = await pdfDoc.save();
   res.setHeader("Content-Type", "application/pdf");
   res.send(Buffer.from(pdfBytes));
@@ -200,4 +236,4 @@ app.post("/generate-pdf", async (req, res) => {
 // ------------------------------------------------------
 app.listen(7200, () =>
   console.log("Hash Verification Backend running at http://localhost:7200")
-);
+);0
